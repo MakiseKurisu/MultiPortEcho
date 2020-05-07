@@ -5,12 +5,16 @@ import getopt
 import socket
 import select
 
+def inclusive_range(start, end):
+    return range(start, end + 1)
+
 def main():
     server_mode = False
     port_low = 0
     port_high = 0
     server_address = ""
 
+    timeout = 1.0
     echo_magic = "mpe"
     encoding = "utf-8"
     receive_buffer_size = 4096
@@ -37,25 +41,30 @@ def main():
     
     if server_mode:
         socket_list = []
-        for port in range(port_low, port_high):
+        for port in inclusive_range(port_low, port_high):
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             s.bind((binding_interface, port))
             socket_list.append(s)
 
-        print("Listening from ", port_low, " to ", port_high, "...")
+        print("Listening from", port_low, "to", port_high, "...")
         while True:
             ready, _, _ = select.select(socket_list, [], [])
             for s in ready:
-                print("Receive connection at ", s.getsockname().port)
+                _, port = s.getsockname()
+                print("Receiving connection at port", port)
                 data, addr = s.recvfrom(receive_buffer_size)
                 s.sendto(data, addr)
     else:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        for port in range(port_low, port_high):
-            s.sendto(echo_magic.encode(encoding), (server_address, port))
-            data, _ = s.recvfrom(receive_buffer_size).decode(encoding)
-            if data == echo_magic:
-                print("Port ", port, " is open.")
+        s.settimeout(timeout)
+        for port in inclusive_range(port_low, port_high):
+            try:
+                s.sendto(echo_magic.encode(encoding), (server_address, port))
+                data, _ = s.recvfrom(receive_buffer_size)
+                if data.decode(encoding) == echo_magic:
+                    print("Port", port, "is open.")
+            except socket.timeout:
+                pass
         s.close()
 
 if __name__ == "__main__":
