@@ -19,7 +19,7 @@ def main():
     try:
         if len(sys.argv) == 1:
             raise getopt.GetoptError("help")
-        opts, _ = getopt.getopt(sys.argv,"sa:l:h:")
+        opts, _ = getopt.getopt(sys.argv[1:], "sa:l:h:")
     except getopt.GetoptError:
         print("mpe.py [-s|-a <address>] -l <port_low> -h <port_high>")
         print("-s: running in server mode")
@@ -29,9 +29,9 @@ def main():
         if opt == "-s":
             server_mode = True
         elif opt == "-l":
-            port_low = arg
-        elif opt == "-l":
-            port_high = arg
+            port_low = int(arg)
+        elif opt == "-h":
+            port_high = int(arg)
         elif opt == "-a":
             server_address = arg
     
@@ -46,6 +46,7 @@ def main():
         while True:
             ready, _, _ = select.select(socket_list, [], [])
             for s in ready:
+                print("Receive connection at ", s.getsockname().port)
                 data, addr = s.recvfrom(receive_buffer_size)
                 s.sendto(data, addr)
     else:
