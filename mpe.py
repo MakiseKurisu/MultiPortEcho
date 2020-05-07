@@ -53,7 +53,7 @@ def main():
                 socket_list.append(s)
             except PermissionError as e:
                 if e.errno == 13:
-                    print("Do not have enough permission to optn port", port, ". Skip.")
+                    print("Do not have enough permission to open port", port, ". Skip.")
                 else:
                     raise
             except OSError as e:
@@ -61,7 +61,7 @@ def main():
                     print("Port", port, "is already opened by another process. Skip.")
                 else:
                     raise
-        
+
         if len(socket_list) == 0:
             print("No port is available. Quit.")
             return RETURN_NO_PORT_AVAILABLE
