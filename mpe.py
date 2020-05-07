@@ -51,6 +51,11 @@ def main():
                 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                 s.bind((binding_interface, port))
                 socket_list.append(s)
+            except PermissionError as e:
+                if e.errno == 13:
+                    print("Do not have enough permission to optn port", port, ". Skip.")
+                else:
+                    raise
             except OSError as e:
                 if e.errno == 98:
                     print("Port", port, "is already opened by another process. Skip.")
