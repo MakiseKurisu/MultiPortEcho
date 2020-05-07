@@ -59,6 +59,9 @@ def main():
             except OSError as e:
                 if e.errno == 98:
                     print("Port", port, "is already opened by another process. Skip.")
+                elif e.errno == 24:
+                    print("Too many ports are opened. Please reduce the range and try again.")
+                    return RETURN_TOO_MANY_PORTS
                 else:
                     raise
 
