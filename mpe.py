@@ -5,6 +5,11 @@ import getopt
 import socket
 import select
 
+RETURN_SUCCESS = 0
+RETURN_MISSING_ARGUMENT = 1
+RETURN_NO_PORT_AVAILABLE = 2
+RETURN_TOO_MANY_PORTS = 3
+
 def inclusive_range(start, end):
     return range(start, end + 1)
 
@@ -27,7 +32,7 @@ def main():
     except getopt.GetoptError:
         print("mpe.py [-s|-a <address>] -l <port_low> -h <port_high>")
         print("-s: running in server mode")
-        sys.exit(2)
+        return RETURN_MISSING_ARGUMENT
 
     for opt, arg in opts:
         if opt == "-s":
@@ -42,18 +47,34 @@ def main():
     if server_mode:
         socket_list = []
         for port in inclusive_range(port_low, port_high):
-            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            s.bind((binding_interface, port))
-            socket_list.append(s)
+            try:
+                s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                s.bind((binding_interface, port))
+                socket_list.append(s)
+            except OSError as e:
+                if e.errno == 98:
+                    print("Port", port, "is already opened by another process. Skip.")
+                else:
+                    raise
+        
+        if len(socket_list) == 0:
+            print("No port is available. Quit.")
+            return RETURN_NO_PORT_AVAILABLE
 
-        print("Listening from", port_low, "to", port_high, "...")
+        print("Listening...")
         while True:
-            ready, _, _ = select.select(socket_list, [], [])
-            for s in ready:
-                _, port = s.getsockname()
-                print("Receiving connection at port", port)
-                data, addr = s.recvfrom(receive_buffer_size)
-                s.sendto(data, addr)
+            try:
+                ready, _, _ = select.select(socket_list, [], [])
+                for s in ready:
+                    _, port = s.getsockname()
+                    print("Receiving connection at port", port)
+                    data, addr = s.recvfrom(receive_buffer_size)
+                    s.sendto(data, addr)
+            except ValueError as e:
+                if str(e) == "filedescriptor out of range in select()":
+                    print("Too many ports are opened. Please reduce the range and try again.")
+                    return RETURN_TOO_MANY_PORTS
+                break
     else:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.settimeout(timeout)
@@ -67,5 +88,7 @@ def main():
                 pass
         s.close()
 
+    return RETURN_SUCCESS
+
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
