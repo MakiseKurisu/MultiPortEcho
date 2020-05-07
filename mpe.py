@@ -10,8 +10,8 @@ RETURN_MISSING_ARGUMENT = 1
 RETURN_NO_PORT_AVAILABLE = 2
 RETURN_TOO_MANY_PORTS = 3
 
-def inclusive_range(start, end):
-    return range(start, end + 1)
+def inclusive_range(start, end, step = 1):
+    return range(start, end + 1, step)
 
 def main():
     server_mode = False
@@ -88,6 +88,7 @@ def main():
         s.settimeout(timeout)
         for port in inclusive_range(port_low, port_high):
             try:
+                print("Testing port", port, "...", end = '\r')
                 s.sendto(echo_magic.encode(encoding), (server_address, port))
                 data, _ = s.recvfrom(receive_buffer_size)
                 if data.decode(encoding) == echo_magic:
